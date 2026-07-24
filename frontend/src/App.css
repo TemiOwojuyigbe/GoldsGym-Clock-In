@@ -1,0 +1,196 @@
+/* Layout and component styles */
+
+.app {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+.app-header {
+  margin-bottom: 2rem;
+  border-bottom: 2px solid var(--gold);
+  padding-bottom: 1.25rem;
+}
+
+.brand {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.app-header h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.85rem;
+  letter-spacing: -0.02em;
+}
+
+.tagline {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1.25rem 1.5rem;
+}
+
+.panel h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+  color: var(--gold);
+}
+
+.hint {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.clock-btn {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  padding: 0.9rem 1.25rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+}
+
+.clock-btn:disabled,
+.primary-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.clock-btn--in {
+  background: var(--in);
+}
+
+.clock-btn--out {
+  background: var(--out);
+}
+
+.primary-btn {
+  padding: 0.7rem 1.1rem;
+  border: none;
+  border-radius: 4px;
+  background: var(--gold);
+  color: #111;
+  font-weight: 700;
+  cursor: pointer;
+  align-self: end;
+}
+
+.primary-btn:hover:not(:disabled) {
+  background: var(--gold-dim);
+  color: #fff;
+}
+
+.status {
+  margin: 1rem 0 0;
+  font-size: 0.9rem;
+}
+
+.status--error {
+  color: var(--danger);
+}
+
+.schedule-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.schedule-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.notes-field {
+  grid-column: 1 / -1;
+}
+
+.schedule-form input {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-accent);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.schedule-form .primary-btn {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 0.55rem 0.4rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.data-table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.badge--in {
+  background: var(--in-bg);
+  color: var(--in);
+}
+
+.badge--out {
+  background: var(--out-bg);
+  color: var(--out);
+}
+
+@media (max-width: 560px) {
+  .schedule-form {
+    grid-template-columns: 1fr;
+  }
+}

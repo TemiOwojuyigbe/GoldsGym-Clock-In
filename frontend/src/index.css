@@ -1,0 +1,36 @@
+/* Global base styles — Gold's Gym inspired (black + gold) */
+
+:root {
+  --bg: #141414;
+  --bg-accent: #1c1c1c;
+  --surface: #222222;
+  --text: #f5f2ea;
+  --muted: #a8a29a;
+  --gold: #d4a017;
+  --gold-dim: #b8860b;
+  --in: #3d9a6a;
+  --in-bg: #1a3326;
+  --out: #c45c3a;
+  --out-bg: #3a2218;
+  --border: #333333;
+  --danger: #e07050;
+  font-family: 'Segoe UI', 'Trebuchet MS', sans-serif;
+  line-height: 1.5;
+  color: var(--text);
+  background:
+    radial-gradient(ellipse at top, #2a2418 0%, transparent 55%),
+    var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
