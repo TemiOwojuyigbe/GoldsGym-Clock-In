@@ -70,7 +70,15 @@ export default function TeamActivity({ refreshKey }) {
                 <div className="activity-row">
                   <p className="feed-title">
                     <strong>{event.employee_name || `Staff #${event.employee_id}`}</strong>
-                    {event.type === 'in' ? ' clocked in' : ' clocked out'}
+                    {event.type === 'in'
+                      ? ' clocked in'
+                      : event.type === 'out'
+                        ? ' clocked out'
+                        : event.type === 'break_start'
+                          ? ' started break'
+                          : event.type === 'break_end'
+                            ? ' ended break'
+                            : ` ${event.type}`}
                   </p>
                   <time className="activity-time">
                     {new Date(event.timestamp).toLocaleTimeString([], {

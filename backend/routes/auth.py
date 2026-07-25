@@ -22,6 +22,7 @@ from geofence import (
     GYM_LATITUDE,
     GYM_LONGITUDE,
     GYM_RADIUS_METERS,
+    TESTING_BYPASS_GEOFENCE,
 )
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api")
@@ -100,6 +101,7 @@ def gym_info():
         "latitude": GYM_LATITUDE,
         "longitude": GYM_LONGITUDE,
         "radius_meters": GYM_RADIUS_METERS,
+        "testing_bypass": TESTING_BYPASS_GEOFENCE,
     })
 
 

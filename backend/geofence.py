@@ -19,6 +19,10 @@ GYM_LONGITUDE = -76.7871191
 # How close you must be (meters). 200m covers parking lot + indoor GPS drift.
 GYM_RADIUS_METERS = 200
 
+# Tester-branch helper: set True only while demoing from home.
+# When False, clock-in/out require being inside the gym geofence.
+TESTING_BYPASS_GEOFENCE = False
+
 
 def distance_meters(lat1, lon1, lat2, lon2):
     """
@@ -37,9 +41,23 @@ def distance_meters(lat1, lon1, lat2, lon2):
 def check_at_gym(latitude, longitude):
     """
     Return (ok, payload).
-      ok=True  → within radius; payload has distance_meters
-      ok=False → too far or missing coords; payload has error message
+      ok=True  -> within radius (or testing bypass); payload has distance_meters
+      ok=False -> too far or missing coords; payload has error message
     """
+    if TESTING_BYPASS_GEOFENCE:
+        # Still accept missing coords in testing so home demos are easy
+        try:
+            lat = float(latitude) if latitude is not None else GYM_LATITUDE
+            lng = float(longitude) if longitude is not None else GYM_LONGITUDE
+            dist = distance_meters(lat, lng, GYM_LATITUDE, GYM_LONGITUDE)
+        except (TypeError, ValueError):
+            dist = 0.0
+        return True, {
+            "distance_meters": round(dist, 1),
+            "allowed_radius_meters": GYM_RADIUS_METERS,
+            "testing_bypass": True,
+        }
+
     if latitude is None or longitude is None:
         return False, {
             "error": "lat and long are required to verify you are at the gym.",

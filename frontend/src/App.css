@@ -461,6 +461,84 @@ html[data-theme='dark'] .shortcut-icon--orange {
   color: var(--out);
 }
 
+.badge--break_start,
+.badge--break_end {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+html[data-theme='dark'] .badge--break_start,
+html[data-theme='dark'] .badge--break_end {
+  background: #78350f;
+  color: #fde68a;
+}
+
+.activity-dot--break_start,
+.activity-dot--break_end {
+  background: var(--warning);
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
+}
+
+.start-btn--locked {
+  background: #94a3b8;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+html[data-theme='dark'] .start-btn--locked {
+  background: #475569;
+}
+
+.timer-card--break {
+  background: linear-gradient(145deg, #b45309 0%, #92400e 55%, #78350f 100%);
+}
+
+.working-pill--break .working-dot {
+  background: #fde68a;
+}
+
+.break-policy-hint {
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.action-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+.break-btn {
+  border: none;
+  border-radius: 16px;
+  padding: 0.95rem 0.75rem;
+  background: #f59e0b;
+  color: #111;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.break-btn--end {
+  background: #fde68a;
+}
+
+.break-btn:disabled,
+.end-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.action-row .end-btn {
+  margin: 0;
+  width: 100%;
+}
+
+
 /* --- Buttons / forms --- */
 .icon-btn,
 .ghost-btn {

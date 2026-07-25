@@ -1,9 +1,8 @@
 /**
- * ClockButton.jsx — Time Clock UI inspired by modern Start / End screens.
+ * ClockButton.jsx — Start / End + breaks, geofence-gated Start.
  *
- * - Big blue Start when idle
- * - Live timer card + orange End while working
- * - Reads last timesheet event so a refresh keeps you "Working"
+ * Start stays disabled until the employee is inside the green gym zone.
+ * Break length comes from the scheduled shift (≤4h → 10 min, longer → 30 min).
  */
 
 import { useEffect, useState } from 'react'
@@ -36,38 +35,54 @@ function formatElapsed(ms) {
   return `${h}:${m}:${s}`
 }
 
+function applySession(session, setters) {
+  const { setWorking, setOnBreak, setStartedAt, setBreakStartedAt, setBreakInfo } =
+    setters
+  if (!session) return
+  setWorking(!!session.clocked_in)
+  setOnBreak(!!session.on_break)
+  setStartedAt(session.clock_in_at ? new Date(session.clock_in_at).getTime() : null)
+  setBreakStartedAt(
+    session.break_started_at ? new Date(session.break_started_at).getTime() : null
+  )
+  setBreakInfo(session.break || null)
+}
+
 export default function ClockButton({
   employee,
   gym,
+  insideGeofence,
+  locationReady,
   onClocked,
   onLocationUpdate,
 }) {
   const [working, setWorking] = useState(false)
+  const [onBreak, setOnBreak] = useState(false)
   const [startedAt, setStartedAt] = useState(null)
+  const [breakStartedAt, setBreakStartedAt] = useState(null)
+  const [breakInfo, setBreakInfo] = useState(null)
   const [now, setNow] = useState(Date.now())
   const [lastLocationLabel, setLastLocationLabel] = useState('')
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
   const [hydrated, setHydrated] = useState(false)
 
-  // Restore working state from last punch
+  const sessionSetters = {
+    setWorking,
+    setOnBreak,
+    setStartedAt,
+    setBreakStartedAt,
+    setBreakInfo,
+  }
+
   useEffect(() => {
     let cancelled = false
     async function hydrate() {
       try {
-        const data = await apiFetch('/api/timesheet')
-        const last = data.events?.[0]
-        if (!cancelled && last?.type === 'in') {
-          setWorking(true)
-          setStartedAt(new Date(last.timestamp).getTime())
-          if (last.latitude != null && last.longitude != null) {
-            setLastLocationLabel(
-              `${last.latitude.toFixed(4)}, ${last.longitude.toFixed(4)}`
-            )
-          }
-        }
+        const data = await apiFetch('/api/session')
+        if (!cancelled) applySession(data, sessionSetters)
       } catch {
-        // ignore — user can still punch
+        // still allow punching
       } finally {
         if (!cancelled) setHydrated(true)
       }
@@ -76,19 +91,17 @@ export default function ClockButton({
     return () => {
       cancelled = true
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Tick the live timer while working
   useEffect(() => {
     if (!working) return undefined
     const id = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(id)
   }, [working])
 
-  // Watch position for the map (optional UX)
   useEffect(() => {
     if (!navigator.geolocation || !onLocationUpdate) return undefined
-
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         onLocationUpdate({
@@ -99,23 +112,36 @@ export default function ClockButton({
       () => {},
       { enableHighAccuracy: true, maximumAge: 5000 }
     )
-
     return () => navigator.geolocation.clearWatch(watchId)
   }, [onLocationUpdate])
 
   async function handlePunch(nextAction) {
+    if (nextAction === 'in' && !insideGeofence) {
+      setStatus('Error: Move inside the green gym zone to Start.')
+      return
+    }
+
     setLoading(true)
-    setStatus('Getting your location…')
+    setStatus(
+      gym?.testing_bypass
+        ? 'Testing mode — sending punch…'
+        : 'Getting your location…'
+    )
 
     try {
-      const location = await getCurrentPosition()
+      let location
+      try {
+        location = await getCurrentPosition()
+      } catch (geoErr) {
+        if (gym?.testing_bypass && gym.latitude != null) {
+          location = { lat: gym.latitude, long: gym.longitude }
+        } else {
+          throw geoErr
+        }
+      }
       if (onLocationUpdate) onLocationUpdate(location)
 
-      setStatus(
-        nextAction === 'in'
-          ? 'Checking gym zone…'
-          : 'Ending shift…'
-      )
+      setStatus(nextAction === 'in' ? 'Checking gym zone…' : 'Ending shift…')
 
       const endpoint = nextAction === 'in' ? '/api/clock-in' : '/api/clock-out'
       const data = await apiFetch(endpoint, {
@@ -126,21 +152,14 @@ export default function ClockButton({
         }),
       })
 
-      const label =
-        gym?.address ||
-        `${location.lat.toFixed(4)}, ${location.long.toFixed(4)}`
-      setLastLocationLabel(label)
-
-      if (nextAction === 'in') {
-        setWorking(true)
-        setStartedAt(new Date(data.event.timestamp).getTime())
-        setStatus(`Clocked in · ${data.distance_meters ?? 0}m from gym`)
-      } else {
-        setWorking(false)
-        setStartedAt(null)
-        setStatus(`Clocked out · ${data.distance_meters ?? 0}m from gym`)
-      }
-
+      setLastLocationLabel(
+        gym?.address || `${location.lat.toFixed(4)}, ${location.long.toFixed(4)}`
+      )
+      applySession(data.session, sessionSetters)
+      setStatus(
+        `${data.message} · ${data.distance_meters ?? 0}m from gym` +
+          (data.distance_meters != null && gym?.testing_bypass ? ' (testing bypass)' : '')
+      )
       if (onClocked) onClocked()
     } catch (err) {
       const extra =
@@ -153,13 +172,44 @@ export default function ClockButton({
     }
   }
 
-  const elapsed =
+  async function handleBreak(action) {
+    setLoading(true)
+    setStatus(action === 'start' ? 'Starting break…' : 'Ending break…')
+    try {
+      const endpoint = action === 'start' ? '/api/break-start' : '/api/break-end'
+      const data = await apiFetch(endpoint, { method: 'POST', body: '{}' })
+      applySession(data.session, sessionSetters)
+      setStatus(data.message)
+      if (onClocked) onClocked()
+    } catch (err) {
+      setStatus(`Error: ${err.message}`)
+      if (err.data?.session) applySession(err.data.session, sessionSetters)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const shiftElapsed =
     working && startedAt != null ? formatElapsed(now - startedAt) : '00:00:00'
+  const breakElapsed =
+    onBreak && breakStartedAt != null
+      ? formatElapsed(now - breakStartedAt)
+      : '00:00:00'
+
   const todayLabel = new Date().toLocaleDateString(undefined, {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
   })
+
+  const canStart = insideGeofence && !loading
+  const startHint = gym?.testing_bypass
+    ? 'Testing mode: geofence bypass is ON — you can Start from anywhere to try breaks.'
+    : !locationReady
+      ? 'Finding your location… Start unlocks inside the green zone.'
+      : insideGeofence
+        ? `You're in the zone — tap Start at ${gym?.name || "Gold's Gym"}`
+        : 'Start is locked until you are inside the green gym zone.'
 
   if (!hydrated) {
     return (
@@ -175,64 +225,109 @@ export default function ClockButton({
         <div className="start-wrap">
           <button
             type="button"
-            className="start-btn"
+            className={`start-btn ${!insideGeofence ? 'start-btn--locked' : ''}`}
             onClick={() => handlePunch('in')}
-            disabled={loading}
+            disabled={!canStart}
+            title={
+              insideGeofence
+                ? 'Clock in'
+                : 'Move inside the green zone to enable Start'
+            }
           >
             <span className="start-btn__icon" aria-hidden="true">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-                <path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path
+                  d="M12 7v5l3 2"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               </svg>
             </span>
-            <span className="start-btn__label">{loading ? '…' : 'Start'}</span>
+            <span className="start-btn__label">
+              {loading ? '…' : insideGeofence ? 'Start' : 'Locked'}
+            </span>
           </button>
-          <p className="start-caption">
-            Clock in at {gym?.name || "Gold's Gym"} when you are inside the green zone
-          </p>
+          <p className="start-caption">{startHint}</p>
         </div>
       ) : (
-        <div className="timer-card">
+        <div className={`timer-card ${onBreak ? 'timer-card--break' : ''}`}>
           <div className="timer-card__top">
-            <span className="working-pill">
-              <span className="working-dot" /> Working
+            <span className={`working-pill ${onBreak ? 'working-pill--break' : ''}`}>
+              <span className="working-dot" />
+              {onBreak ? 'On break' : 'Working'}
             </span>
             <p className="timer-card__who">{employee.name}</p>
           </div>
-          <p className="timer-card__time">{elapsed}</p>
+          <p className="timer-card__time">
+            {onBreak ? breakElapsed : shiftElapsed}
+          </p>
           <p className="timer-card__loc">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M12 21s7-5.2 7-11a7 7 0 1 0-14 0c0 5.8 7 11 7 11Z"
-                stroke="currentColor"
-                strokeWidth="2"
-              />
-              <circle cx="12" cy="10" r="2.5" fill="currentColor" />
-            </svg>
-            {lastLocationLabel || gym?.address || 'On site'}
+            {onBreak
+              ? `Break timer · ${breakInfo?.entitled_minutes ?? '—'} min allowed`
+              : lastLocationLabel || gym?.address || 'On site'}
           </p>
           <div className="timer-card__meta">
             <span>{todayLabel}</span>
-            <span>Live shift</span>
+            <span>
+              {onBreak
+                ? `Shift ${shiftElapsed}`
+                : breakInfo
+                  ? `Break ${breakInfo.used_minutes}/${breakInfo.entitled_minutes} min`
+                  : 'Live shift'}
+            </span>
           </div>
         </div>
       )}
 
+      {working && breakInfo && (
+        <p className="break-policy-hint">
+          {breakInfo.shift
+            ? `Scheduled ${breakInfo.shift_hours}h shift → ${breakInfo.entitled_minutes} min break`
+            : `Break allowance: ${breakInfo.entitled_minutes} min (≤4h = 10, longer = 30)`}
+          {` · ${breakInfo.remaining_minutes} min left`}
+        </p>
+      )}
+
       {working && (
-        <button
-          type="button"
-          className="end-btn"
-          onClick={() => handlePunch('out')}
-          disabled={loading}
-        >
-          <span className="end-btn__icon" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-              <rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor" />
-            </svg>
-          </span>
-          {loading ? 'Ending…' : 'End'}
-        </button>
+        <div className="action-row">
+          {!onBreak ? (
+            <button
+              type="button"
+              className="break-btn"
+              onClick={() => handleBreak('start')}
+              disabled={loading || (breakInfo?.remaining_minutes ?? 0) <= 0}
+            >
+              Start break
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="break-btn break-btn--end"
+              onClick={() => handleBreak('end')}
+              disabled={loading}
+            >
+              End break
+            </button>
+          )}
+
+          <button
+            type="button"
+            className="end-btn"
+            onClick={() => handlePunch('out')}
+            disabled={loading || onBreak}
+            title={onBreak ? 'End break before clocking out' : 'Clock out'}
+          >
+            <span className="end-btn__icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+                <rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor" />
+              </svg>
+            </span>
+            {loading ? '…' : 'End'}
+          </button>
+        </div>
       )}
 
       {status && (

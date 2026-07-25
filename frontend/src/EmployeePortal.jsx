@@ -38,6 +38,8 @@ export default function EmployeePortal({ employee, onLogout }) {
   }, [])
 
   const insideGeofence = useMemo(() => {
+    // Tester branch: unlock Start from home when backend testing bypass is on
+    if (gym?.testing_bypass) return true
     if (!gym || !userLocation) return false
     const d = roughDistanceMeters(
       userLocation.lat,
@@ -47,6 +49,8 @@ export default function EmployeePortal({ employee, onLogout }) {
     )
     return d <= gym.radius_meters
   }, [gym, userLocation])
+
+  const locationReady = !!userLocation || !!gym?.testing_bypass
 
   function handleLogout() {
     clearAuth()
@@ -85,6 +89,8 @@ export default function EmployeePortal({ employee, onLogout }) {
           <ClockButton
             employee={employee}
             gym={gym}
+            insideGeofence={insideGeofence}
+            locationReady={locationReady}
             onLocationUpdate={onLocationUpdate}
             onClocked={bump}
           />

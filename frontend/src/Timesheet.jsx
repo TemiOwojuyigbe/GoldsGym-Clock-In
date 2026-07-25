@@ -89,7 +89,15 @@ export default function Timesheet({ refreshKey, compact }) {
               <div className="activity-body">
                 <div className="activity-row">
                   <span className={`badge badge--${event.type}`}>
-                    {event.type === 'in' ? 'Clocked in' : 'Clocked out'}
+                    {event.type === 'in'
+                      ? 'Clocked in'
+                      : event.type === 'out'
+                        ? 'Clocked out'
+                        : event.type === 'break_start'
+                          ? 'Break started'
+                          : event.type === 'break_end'
+                            ? 'Break ended'
+                            : event.type}
                   </span>
                   <time className="activity-time">
                     {new Date(event.timestamp).toLocaleTimeString([], {

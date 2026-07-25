@@ -53,7 +53,7 @@ class ClockEvent(db.Model):
     employee_id = db.Column(
         db.Integer, db.ForeignKey("employees.id"), nullable=False
     )
-    type = db.Column(db.String(10), nullable=False)  # "in" or "out"
+    type = db.Column(db.String(20), nullable=False)  # in | out | break_start | break_end
     timestamp = db.Column(
         db.DateTime,
         nullable=False,
