@@ -1,43 +1,45 @@
 /**
- * App.jsx — Gold's Gym Clock-In layout.
+ * App.jsx — Root router for dual portals.
  *
- * Sections:
- * 1. ClockButton — employee punches in/out with GPS
- * 2. Schedule — manager creates + views shifts
- * 3. Timesheet — punch history for the test employee
- *
- * refreshKey bumps after clock or schedule changes so lists reload.
+ * Not logged in → LoginPage (Employee / Admin tabs)
+ * Employee portal token → EmployeePortal (clock + timesheet)
+ * Admin portal token → AdminPortal (schedule)
  */
 
 import { useState } from 'react'
-import ClockButton from './ClockButton'
-import Schedule from './Schedule'
-import Timesheet from './Timesheet'
+import LoginPage from './LoginPage'
+import EmployeePortal from './EmployeePortal'
+import AdminPortal from './AdminPortal'
+import { loadAuth } from './authStorage'
 import './App.css'
 
 function App() {
-  const [refreshKey, setRefreshKey] = useState(0)
+  const [session, setSession] = useState(() => loadAuth())
 
-  function handleRefresh() {
-    setRefreshKey((k) => k + 1)
+  function handleLoggedIn(data) {
+    setSession({
+      token: data.token,
+      portal: data.portal,
+      employee: data.employee,
+    })
+  }
+
+  function handleLogout() {
+    setSession(null)
+  }
+
+  if (!session?.token) {
+    return <LoginPage onLoggedIn={handleLoggedIn} />
+  }
+
+  if (session.portal === 'admin') {
+    return (
+      <AdminPortal employee={session.employee} onLogout={handleLogout} />
+    )
   }
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <p className="brand">Gold&apos;s Gym</p>
-        <h1>Staff Clock-In</h1>
-        <p className="tagline">
-          Clock in/out with location · managers schedule shifts
-        </p>
-      </header>
-
-      <main className="app-main">
-        <ClockButton onClocked={handleRefresh} />
-        <Schedule refreshKey={refreshKey} onChanged={handleRefresh} />
-        <Timesheet refreshKey={refreshKey} />
-      </main>
-    </div>
+    <EmployeePortal employee={session.employee} onLogout={handleLogout} />
   )
 }
 

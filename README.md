@@ -1,72 +1,65 @@
-# Gold's Gym Clock-In
+# Gold's Gym Clock-In (Bowie)
 
-MVP web app for gym staff clock-in/out **and** manager shift scheduling.
+MVP for staff clock-in/out **with geofencing** and **dual login portals** for employees vs managers.
 
 - **Frontend:** React (Vite)
 - **Backend:** Flask
-- **Database:** SQLite (easy to swap for Postgres later)
-- **Auth:** none yet — uses hardcoded test employee `Alex Trainer` (id `1`)
+- **Database:** SQLite
+- **Gym pin:** Gold's Gym, 12510 Fairwood Pkwy, Bowie, MD 20720 (~200m radius)
+
+## Dual portals
+
+| Portal | Who | What they get |
+|--------|-----|----------------|
+| **Employee Login** | All staff (including managers) | Clock in/out, timesheet, punch edit requests. Must be near the gym. |
+| **Admin Login** | `role=admin` only | Team activity feed, schedule (add/edit/delete + filters), approvals. |
+
+Managers (like Jordan) use **Employee Login** to punch, then **Admin Login** when they need to manage schedules.
+
+## Demo accounts
+
+Password for both: `password123`
+
+| Email | Role | Portals |
+|-------|------|---------|
+| `alex@goldsgym.local` | employee | Employee only |
+| `jordan@goldsgym.local` | admin | Employee + Admin |
 
 ## Folder structure
 
 ```
 GoldsGym-Clock-In/
-├── README.md
 ├── backend/
-│   ├── app.py              # Flask entry point
-│   ├── models.py           # Employee, ClockEvent, Shift tables
-│   ├── requirements.txt
+│   ├── app.py           # Flask entry, seeds users
+│   ├── auth.py          # tokens + portal guards
+│   ├── geofence.py      # Bowie gym distance check
+│   ├── models.py        # Employee (role/password), ClockEvent, Shift
 │   └── routes/
-│       ├── clock.py        # clock-in, clock-out, timesheet
-│       └── shifts.py       # GET + POST /api/shifts
-└── frontend/
-    ├── index.html
-    ├── package.json
-    ├── vite.config.js      # proxies /api → Flask :5000
-    └── src/
-        ├── App.jsx
-        ├── ClockButton.jsx # Geolocation + clock punches
-        ├── Schedule.jsx    # manager create/list shifts
-        └── Timesheet.jsx   # punch history
+│       ├── auth.py      # login/employee, login/admin, /me, /gym, /employees
+│       ├── clock.py     # clock-in/out + timesheet (employee portal)
+│       └── shifts.py    # schedule GET/POST (admin portal)
+└── frontend/src/
+    ├── LoginPage.jsx
+    ├── EmployeePortal.jsx
+    ├── AdminPortal.jsx
+    ├── ClockButton.jsx
+    ├── Schedule.jsx
+    └── Timesheet.jsx
 ```
 
-## How the features work together
+## How to run
 
-| Who | Action | API |
-|-----|--------|-----|
-| Manager | Create a shift | `POST /api/shifts` |
-| Manager | View schedule | `GET /api/shifts` |
-| Employee | Clock in (with GPS) | `POST /api/clock-in` |
-| Employee | Clock out (with GPS) | `POST /api/clock-out` |
-| Anyone | View punches | `GET /api/timesheet/1` |
-
-**Shifts** = planned schedule. **Clock events** = actual punches. They are separate on purpose for this MVP.
-
-## API endpoints
-
-| Method | Path | Body |
-|--------|------|------|
-| `POST` | `/api/clock-in` | `{ "employee_id", "lat", "long" }` |
-| `POST` | `/api/clock-out` | `{ "employee_id", "lat", "long" }` |
-| `GET` | `/api/timesheet/:employee_id` | — |
-| `GET` | `/api/shifts` | — |
-| `POST` | `/api/shifts` | `{ "employee_id", "start_time", "end_time", "notes?" }` |
-
-## How to run locally
-
-### 1. Backend
+### Backend
 
 ```powershell
 cd backend
-python -m venv venv
 .\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
 python app.py
 ```
 
-API: http://127.0.0.1:5000
+If you had an older DB without passwords, the app rebuilds tables automatically once.
 
-### 2. Frontend
+### Frontend
 
 ```powershell
 cd frontend
@@ -74,33 +67,25 @@ npm install
 npm run dev
 ```
 
-UI: http://localhost:5173 — allow location when prompted.
+Open http://localhost:5173
 
-## Quick API smoke tests (PowerShell)
+## API overview
 
-With the backend running:
+| Method | Path | Auth | Notes |
+|--------|------|------|-------|
+| `POST` | `/api/login/employee` | — | Any staff account |
+| `POST` | `/api/login/admin` | — | Admin accounts only |
+| `GET` | `/api/me` | Bearer | Current user + portal |
+| `GET` | `/api/gym` | — | Geofence info |
+| `POST` | `/api/clock-in` | Employee portal | Requires lat/long near gym |
+| `POST` | `/api/clock-out` | Employee portal | Requires lat/long near gym |
+| `GET` | `/api/timesheet` | Employee portal | Own punches |
+| `GET` | `/api/shifts` | Admin portal | List schedule |
+| `POST` | `/api/shifts` | Admin portal | Create shift |
+| `GET` | `/api/employees` | Admin portal | Staff list for assigning shifts |
 
-```powershell
-# List shifts (empty at first)
-Invoke-RestMethod http://127.0.0.1:5000/api/shifts
+Send the token as: `Authorization: Bearer <token>`
 
-# Create a shift
-$body = @{
-  employee_id = 1
-  start_time  = "2026-07-25T09:00:00"
-  end_time    = "2026-07-25T17:00:00"
-  notes       = "Front desk"
-} | ConvertTo-Json
+## Geofencing note
 
-Invoke-RestMethod -Method POST -Uri http://127.0.0.1:5000/api/shifts `
-  -ContentType "application/json" -Body $body
-
-# List again — new shift should appear
-Invoke-RestMethod http://127.0.0.1:5000/api/shifts
-```
-
-## Notes
-
-- Geolocation works on `localhost` without HTTPS; production needs HTTPS.
-- Comments in the code explain each major block for learning.
-- To use Postgres later, change `SQLALCHEMY_DATABASE_URI` in `backend/app.py`.
+Clock punches are rejected if you are more than **200 meters** from the Bowie gym coordinates. Testing from home will fail on purpose — go to the gym (or temporarily raise `GYM_RADIUS_METERS` in `backend/geofence.py` for remote demos).

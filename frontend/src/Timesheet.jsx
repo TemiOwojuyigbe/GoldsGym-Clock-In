@@ -1,13 +1,11 @@
 /**
- * Timesheet.jsx — Punch history for the test employee.
- * Fetches GET /api/timesheet/:employee_id
+ * Timesheet.jsx — "My day log" activity timeline (reference-style).
  */
 
 import { useEffect, useState } from 'react'
+import { apiFetch } from './authStorage'
 
-const TEST_EMPLOYEE_ID = 1
-
-export default function Timesheet({ refreshKey }) {
+export default function Timesheet({ refreshKey, compact }) {
   const [employee, setEmployee] = useState(null)
   const [events, setEvents] = useState([])
   const [error, setError] = useState('')
@@ -19,18 +17,11 @@ export default function Timesheet({ refreshKey }) {
     async function loadTimesheet() {
       setLoading(true)
       setError('')
-
       try {
-        const response = await fetch(`/api/timesheet/${TEST_EMPLOYEE_ID}`)
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to load timesheet')
-        }
-
+        const data = await apiFetch('/api/timesheet')
         if (!cancelled) {
           setEmployee(data.employee)
-          setEvents(data.events)
+          setEvents(data.events || [])
         }
       } catch (err) {
         if (!cancelled) setError(err.message)
@@ -45,52 +36,77 @@ export default function Timesheet({ refreshKey }) {
     }
   }, [refreshKey])
 
-  return (
-    <section className="panel">
-      <h2>Timesheet</h2>
+  const today = new Date()
+  const todayEvents = events.filter((e) => {
+    const d = new Date(e.timestamp)
+    return (
+      d.getFullYear() === today.getFullYear() &&
+      d.getMonth() === today.getMonth() &&
+      d.getDate() === today.getDate()
+    )
+  })
 
-      {employee && (
+  const list = compact ? todayEvents : events
+
+  return (
+    <section className={`panel activity-panel ${compact ? 'activity-panel--compact' : ''}`}>
+      <div className="panel-head">
+        <h2>{compact ? 'My day log' : 'Activity'}</h2>
+        <span className="date-pill">
+          {today.toLocaleDateString(undefined, {
+            month: 'long',
+            day: 'numeric',
+          })}{' '}
+          Today
+        </span>
+      </div>
+
+      {employee && !compact && (
         <p className="hint">
           {employee.name} · {employee.email}
         </p>
       )}
 
-      {loading && <p className="hint">Loading...</p>}
+      {loading && <p className="hint">Loading…</p>}
       {error && <p className="status status--error">Error: {error}</p>}
 
-      {!loading && !error && events.length === 0 && (
-        <p className="hint">No clock events yet. Clock in to create the first one.</p>
+      {!loading && !error && list.length === 0 && (
+        <p className="hint">
+          {compact
+            ? 'No punches yet today. Tap Start when you arrive.'
+            : 'No clock events yet.'}
+        </p>
       )}
 
-      {events.length > 0 && (
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Type</th>
-              <th>Timestamp</th>
-              <th>Latitude</th>
-              <th>Longitude</th>
-            </tr>
-          </thead>
-          <tbody>
-            {events.map((event) => (
-              <tr key={event.id}>
-                <td>
+      {list.length > 0 && (
+        <ol className="activity-feed">
+          {list.map((event, index) => (
+            <li key={event.id} className="activity-item">
+              <div className="activity-rail">
+                <span className={`activity-dot activity-dot--${event.type}`} />
+                {index < list.length - 1 && <span className="activity-line" />}
+              </div>
+              <div className="activity-body">
+                <div className="activity-row">
                   <span className={`badge badge--${event.type}`}>
-                    {event.type}
+                    {event.type === 'in' ? 'Clocked in' : 'Clocked out'}
                   </span>
-                </td>
-                <td>{new Date(event.timestamp).toLocaleString()}</td>
-                <td>
-                  {event.latitude != null ? event.latitude.toFixed(5) : '—'}
-                </td>
-                <td>
-                  {event.longitude != null ? event.longitude.toFixed(5) : '—'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  <time className="activity-time">
+                    {new Date(event.timestamp).toLocaleTimeString([], {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}
+                  </time>
+                </div>
+                <p className="activity-meta">
+                  {event.latitude != null
+                    ? `${event.latitude.toFixed(4)}, ${event.longitude.toFixed(4)}`
+                    : 'Location saved'}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
       )}
     </section>
   )

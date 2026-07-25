@@ -1,36 +1,76 @@
-/* Global base styles — Gold's Gym inspired (black + gold) */
+/* Light + dark themes — modern time-clock look (blue Start, orange End) */
 
-:root {
-  --bg: #141414;
-  --bg-accent: #1c1c1c;
-  --surface: #222222;
-  --text: #f5f2ea;
-  --muted: #a8a29a;
-  --gold: #d4a017;
-  --gold-dim: #b8860b;
-  --in: #3d9a6a;
-  --in-bg: #1a3326;
-  --out: #c45c3a;
-  --out-bg: #3a2218;
-  --border: #333333;
-  --danger: #e07050;
-  font-family: 'Segoe UI', 'Trebuchet MS', sans-serif;
-  line-height: 1.5;
-  color: var(--text);
-  background:
-    radial-gradient(ellipse at top, #2a2418 0%, transparent 55%),
-    var(--bg);
+:root,
+html[data-theme='light'] {
+  --bg: #f3f5f9;
+  --bg-elevated: #ffffff;
+  --surface: #ffffff;
+  --text: #152033;
+  --muted: #6b7385;
+  --border: #e2e7ef;
+  --primary: #2f6bff;
+  --primary-pressed: #1f54d6;
+  --danger: #ff5a3d;
+  --danger-soft: #ff7a45;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --in: #2f6bff;
+  --in-bg: #e8efff;
+  --out: #ff5a3d;
+  --out-bg: #ffe8e2;
+  --gold: #2f6bff;
+  --gold-dim: #1f54d6;
+  --shadow: 0 10px 30px rgba(21, 32, 51, 0.08);
+  --map-overlay: rgba(255, 255, 255, 0.92);
+  --timer-grad: linear-gradient(145deg, #1d4ed8 0%, #1e3a8a 60%, #172554 100%);
+  color-scheme: light;
+}
+
+html[data-theme='dark'] {
+  --bg: #0b1220;
+  --bg-elevated: #121a2b;
+  --surface: #162033;
+  --text: #eef2ff;
+  --muted: #9aa6bf;
+  --border: #273247;
+  --primary: #4d82ff;
+  --primary-pressed: #3b6ef0;
+  --danger: #ff6b4a;
+  --danger-soft: #ff8a5b;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --in: #4d82ff;
+  --in-bg: #1a2744;
+  --out: #ff6b4a;
+  --out-bg: #3a221c;
+  --gold: #4d82ff;
+  --gold-dim: #3b6ef0;
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  --map-overlay: rgba(15, 23, 42, 0.92);
+  --timer-grad: linear-gradient(145deg, #2563eb 0%, #1e3a8a 55%, #0f172a 100%);
+  color-scheme: dark;
 }
 
 * {
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
+html,
+body,
+#root {
+  min-height: 100%;
 }
 
-#root {
-  min-height: 100vh;
+body {
+  margin: 0;
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select {
+  font: inherit;
 }
