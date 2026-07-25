@@ -1010,3 +1010,119 @@ html[data-theme='dark'] .status-pill--rejected {
     flex: 1;
   }
 }
+
+/* --- Friendlier schedule (Tester) --- */
+.day-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.day-nav__center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  text-align: center;
+}
+
+.linkish {
+  border: none;
+  background: transparent;
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+}
+
+.week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.45rem 0.2rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.week-day__name {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.week-day__num {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.week-day__count {
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.week-day--today {
+  border-color: var(--primary);
+}
+
+.week-day--active {
+  background: var(--in-bg);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.week-day--active .week-day__num {
+  color: var(--primary);
+}
+
+.preset-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.break-preview {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  background: var(--in-bg);
+  color: var(--primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.inline-hours {
+  margin-top: 0.55rem;
+}
+
+.day-summary {
+  margin: 0.35rem 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.shift-duration {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
