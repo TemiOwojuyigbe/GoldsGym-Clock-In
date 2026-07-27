@@ -2,10 +2,8 @@
 auth.py — Login tokens and route guards.
 
 Two portals share the same accounts:
-  - Employee login → token with portal="employee" (clock in/out only)
-  - Admin login    → token with portal="admin" (scheduling only; role must be admin)
-
-Managers (role=admin) use Employee Login to punch, Admin Login to schedule.
+  - Employee login → view your assigned shifts
+  - Admin login    → create/edit/delete the full schedule (role must be admin)
 """
 
 from functools import wraps
@@ -84,7 +82,7 @@ def require_employee_portal(view):
 
         if payload.get("portal") != "employee":
             return jsonify({
-                "error": "Use Employee Login to clock in/out.",
+                "error": "Use Employee Login to view your schedule.",
             }), 403
 
         employee = db.session.get(Employee, payload["employee_id"])

@@ -1,5 +1,5 @@
 /**
- * LoginPage.jsx — Dual portal login with theme toggle.
+ * LoginPage.jsx — Staff schedule portals (no clock-in).
  */
 
 import { useState } from 'react'
@@ -7,7 +7,7 @@ import { saveAuth } from './authStorage'
 import ThemeToggle from './ThemeToggle'
 
 export default function LoginPage({ onLoggedIn }) {
-  const [portal, setPortal] = useState('employee')
+  const [portal, setPortal] = useState('admin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -45,7 +45,7 @@ export default function LoginPage({ onLoggedIn }) {
       <header className="app-topbar">
         <div>
           <p className="brand">Gold&apos;s Gym Bowie</p>
-          <h1 className="topbar-title">Staff Portal</h1>
+          <h1 className="topbar-title">Staff Schedule</h1>
         </div>
         <ThemeToggle />
       </header>
@@ -55,27 +55,27 @@ export default function LoginPage({ onLoggedIn }) {
           <button
             type="button"
             role="tab"
-            className={portal === 'employee' ? 'tab tab--active' : 'tab'}
-            aria-selected={portal === 'employee'}
-            onClick={() => setPortal('employee')}
-          >
-            Employee Login
-          </button>
-          <button
-            type="button"
-            role="tab"
             className={portal === 'admin' ? 'tab tab--active' : 'tab'}
             aria-selected={portal === 'admin'}
             onClick={() => setPortal('admin')}
           >
-            Admin Login
+            Manager Login
+          </button>
+          <button
+            type="button"
+            role="tab"
+            className={portal === 'employee' ? 'tab tab--active' : 'tab'}
+            aria-selected={portal === 'employee'}
+            onClick={() => setPortal('employee')}
+          >
+            Staff Login
           </button>
         </div>
 
         <p className="hint">
-          {portal === 'employee'
-            ? 'Clock in near the gym with live map + Start / End.'
-            : 'Managers only — manage the shift schedule.'}
+          {portal === 'admin'
+            ? 'Create, edit, and organize staff shifts.'
+            : 'See the shifts assigned to you.'}
         </p>
 
         <form className="login-form" onSubmit={handleSubmit}>
@@ -102,7 +102,7 @@ export default function LoginPage({ onLoggedIn }) {
           <button type="submit" className="primary-btn primary-btn--block" disabled={loading}>
             {loading
               ? 'Signing in…'
-              : `Sign in to ${portal === 'employee' ? 'Employee' : 'Admin'}`}
+              : `Sign in as ${portal === 'admin' ? 'Manager' : 'Staff'}`}
           </button>
         </form>
 
@@ -114,10 +114,10 @@ export default function LoginPage({ onLoggedIn }) {
           </p>
           <ul className="demo-list">
             <li>
-              <code>alex@goldsgym.local</code> — employee
+              <code>jordan@goldsgym.local</code> — manager (schedule)
             </li>
             <li>
-              <code>jordan@goldsgym.local</code> — manager (both portals)
+              <code>alex@goldsgym.local</code> — staff (view my shifts)
             </li>
           </ul>
         </div>

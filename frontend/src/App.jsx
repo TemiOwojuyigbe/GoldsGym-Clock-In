@@ -1,9 +1,8 @@
 /**
- * App.jsx — Root router for dual portals.
+ * App.jsx — Scheduling app router.
  *
- * Not logged in → LoginPage (Employee / Admin tabs)
- * Employee portal token → EmployeePortal (clock + timesheet)
- * Admin portal token → AdminPortal (schedule)
+ * Login → Manager schedule desk, or staff "My shifts" view.
+ * Clock-in / clock-out is intentionally not part of this build.
  */
 
 import { useState } from 'react'

@@ -1,19 +1,44 @@
 """
-routes/shifts.py — Manager shift scheduling (Admin portal).
+routes/shifts.py — Staff scheduling.
 
-GET    /api/shifts              — list (optional ?date=YYYY-MM-DD&role=employee|admin)
-POST   /api/shifts              — create
-PUT    /api/shifts/<id>         — edit
-DELETE /api/shifts/<id>         — delete
+GET    /api/my-shifts           — employee: own shifts
+GET    /api/shifts              — admin list (optional ?date=&role=)
+POST   /api/shifts              — admin create
+PUT    /api/shifts/<id>         — admin edit
+DELETE /api/shifts/<id>         — admin delete
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from datetime import datetime, time
 
 from models import db, Employee, Shift
-from auth import require_admin_portal
+from auth import require_admin_portal, require_employee_portal
 
 shift_bp = Blueprint("shifts", __name__, url_prefix="/api")
+
+
+@shift_bp.route("/my-shifts", methods=["GET"])
+@require_employee_portal
+def my_shifts():
+    """
+    Employee portal — upcoming/past shifts for the logged-in staff member only.
+    Optional ?date=YYYY-MM-DD to focus on one day.
+    """
+    employee_id = g.current_employee.id
+    query = Shift.query.filter_by(employee_id=employee_id)
+
+    date_str = (request.args.get("date") or "").strip()
+    if date_str:
+        try:
+            day = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            return jsonify({"error": "date must be YYYY-MM-DD"}), 400
+        day_start = datetime.combine(day, time.min)
+        day_end = datetime.combine(day, time.max)
+        query = query.filter(Shift.start_time <= day_end, Shift.end_time >= day_start)
+
+    shifts = query.order_by(Shift.start_time.asc()).all()
+    return jsonify({"shifts": [s.to_dict() for s in shifts]})
 
 
 def _parse_iso_datetime(value, field_name):
