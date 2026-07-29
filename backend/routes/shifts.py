@@ -84,6 +84,29 @@ def _parse_shift_fields(data, partial=False):
     return result, None
 
 
+def _find_overlapping_shifts(employee_id, start_time, end_time, exclude_shift_id=None):
+    """
+    Same person cannot be in two places at once.
+    Overlap rule: new_start < existing_end AND new_end > existing_start
+    """
+    query = Shift.query.filter(
+        Shift.employee_id == employee_id,
+        Shift.start_time < end_time,
+        Shift.end_time > start_time,
+    )
+    if exclude_shift_id is not None:
+        query = query.filter(Shift.id != exclude_shift_id)
+    return query.order_by(Shift.start_time.asc()).all()
+
+
+def _conflict_payload(conflicts):
+    return {
+        "error": "This person already has an overlapping shift.",
+        "code": "SHIFT_CONFLICT",
+        "conflicts": [s.to_dict() for s in conflicts],
+    }
+
+
 @shift_bp.route("/shifts", methods=["GET"])
 @require_admin_portal
 def get_shifts():
@@ -123,10 +146,21 @@ def create_shift():
     if fields["end_time"] <= fields["start_time"]:
         return jsonify({"error": "end_time must be after start_time"}), 400
 
+    allow_overlap = bool(data.get("allow_overlap"))
+    conflicts = _find_overlapping_shifts(
+        fields["employee_id"], fields["start_time"], fields["end_time"]
+    )
+    if conflicts and not allow_overlap:
+        return jsonify(_conflict_payload(conflicts)), 409
+
     shift = Shift(**fields)
     db.session.add(shift)
     db.session.commit()
-    return jsonify({"message": "Shift created", "shift": shift.to_dict()}), 201
+    return jsonify({
+        "message": "Shift created",
+        "shift": shift.to_dict(),
+        "forced_overlap": bool(conflicts) and allow_overlap,
+    }), 201
 
 
 @shift_bp.route("/shifts/<int:shift_id>", methods=["PUT"])
@@ -149,8 +183,19 @@ def update_shift(shift_id):
     if end <= start:
         return jsonify({"error": "end_time must be after start_time"}), 400
 
+    allow_overlap = bool(data.get("allow_overlap"))
+    conflicts = _find_overlapping_shifts(
+        shift.employee_id, start, end, exclude_shift_id=shift.id
+    )
+    if conflicts and not allow_overlap:
+        return jsonify(_conflict_payload(conflicts)), 409
+
     db.session.commit()
-    return jsonify({"message": "Shift updated", "shift": shift.to_dict()})
+    return jsonify({
+        "message": "Shift updated",
+        "shift": shift.to_dict(),
+        "forced_overlap": bool(conflicts) and allow_overlap,
+    })
 
 
 @shift_bp.route("/shifts/<int:shift_id>", methods=["DELETE"])
